@@ -26,7 +26,7 @@ export class VodFoundation extends cdk.Stack {
         /**
          * CloudFormation Template Descrption
          */
-        const solutionId = 'SO0146'
+        const solutionId = 'VCW0146'
         const solutionName = 'Video on Demand on AWS Foundation'
         const solutionVersion = scope.node.tryGetContext('solution_version') ?? '%%VERSION%%';
         this.templateOptions.description = `(${solutionId}) ${solutionName} Solution Implementation. Version ${solutionVersion}`;
@@ -48,6 +48,19 @@ export class VodFoundation extends cdk.Stack {
             description: "The admin email address to receive SNS notifications for job status.",
             allowedPattern: "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$"
         });
+        const sourceBucketName = new cdk.CfnParameter(this, "sourceBucketName", {
+            type: "String",
+            description: "Name of source s3 bucket",
+        });
+        const vitalCheckServer = new cdk.CfnParameter(this, "vitalCheckServer", {
+            type: "String",
+            description: "Name or ip of VitalCheck Server",
+        });
+        const vitalCheckPort = new cdk.CfnParameter(this, "vitalCheckPort", {
+            type: "String",
+            description: "VitalCheck Server Port",
+        });
+        const source = s3.Bucket.fromBucketName(this, 'Source', sourceBucketName.value.toString())
         /**
          * Logs bucket for S3 and CloudFront
         */
@@ -82,37 +95,6 @@ export class VodFoundation extends cdk.Stack {
                     id: 'AwsSolutions-S1', //same as cfn_nag rule W35
                     reason: 'Used to store access logs for other buckets'
                 }, {
-                    id: 'AwsSolutions-S10',
-                    reason: 'Bucket is private and is not using HTTP'
-                }
-            ]
-        );
-        /**
-         * Source S3 bucket to host source videos and jobSettings JSON files
-        */
-        const source = new s3.Bucket(this, 'Source', {
-            serverAccessLogsBucket: logsBucket,
-            serverAccessLogsPrefix: 'source-bucket-logs/',
-            encryption: s3.BucketEncryption.S3_MANAGED,
-            publicReadAccess: false,
-            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-            enforceSSL: true,
-            versioned: true
-        });
-        const cfnSource = source.node.findChild('Resource') as s3.CfnBucket;
-        cfnSource.cfnOptions.metadata = {
-            cfn_nag: {
-                rules_to_suppress: [{
-                    id: 'W51',
-                    reason: 'source bucket is private and does not require a bucket policy'
-                }]
-            }
-        };
-        //cdk_nag
-        NagSuppressions.addResourceSuppressions(
-            source,
-            [
-                {
                     id: 'AwsSolutions-S10',
                     reason: 'Bucket is private and is not using HTTP'
                 }
@@ -462,7 +444,9 @@ export class VodFoundation extends cdk.Stack {
                 SOLUTION_ID: solutionId,
                 VERSION:solutionVersion,
                 UUID:customResourceEndpoint.getAttString('UUID'),
-                SOLUTION_IDENTIFIER: `AwsSolution/${solutionId}/${solutionVersion}`
+                SOLUTION_IDENTIFIER: `AwsSolution/${solutionId}/${solutionVersion}`,
+                VITALCHECK_SERVER: vitalCheckServer.valueAsString,
+                VITAL_CHECK_PORT: vitalCheckPort.valueAsString
             },
             role: jobCompleteRole
         });
@@ -543,7 +527,7 @@ export class VodFoundation extends cdk.Stack {
         /**
         * AppRegistry
         */
-        const applicationName = `vod-foundation-${cdk.Aws.REGION}-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.STACK_NAME}`;
+        const applicationName = `podcast-vod-${cdk.Aws.REGION}-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.STACK_NAME}`;
         const attributeGroup = new appreg.AttributeGroup(this, 'AppRegistryAttributeGroup', {
             attributeGroupName: `${cdk.Aws.REGION}-${cdk.Aws.STACK_NAME}`,
             description: "Attribute group for solution information.",

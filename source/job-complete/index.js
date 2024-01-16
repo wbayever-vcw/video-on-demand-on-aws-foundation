@@ -3,7 +3,18 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 const utils = require('./lib/utils.js');
-
+const https = require('http');
+const getStatus = (defaultOptions, path, payload) => new Promise((resolve, reject) => {
+    const options = { ...defaultOptions, path, method: 'POST' };
+    const req = https.request(options, res => {
+        let buffer = "";
+        res.on('data', chunk => buffer += chunk)
+        res.on('end', () => resolve(buffer))
+    });
+    req.on('error', e => reject(e.message));
+    req.write(payload);
+    req.end();
+})
 exports.handler = async (event) => {
     console.log(`REQUEST:: ${JSON.stringify(event, null, 2)}`);
 
@@ -17,7 +28,9 @@ exports.handler = async (event) => {
         METRICS,
         SOLUTION_ID,
         VERSION,
-        UUID
+        UUID,
+        VITALCHECK_SERVER,
+        VITALCHECK_PORT
     } = process.env;
 
     try {
@@ -54,6 +67,19 @@ exports.handler = async (event) => {
                      * send a summary of the job to sns
                     */
                     await utils.sendSns(SNS_TOPIC_ARN,STACKNAME,status,results);
+                    console.log(results.Outputs.HLS_GROUP)
+                    const postData = `resource_id=${event.detail.userMetadata.MongoDbId}&video_url=${results.Outputs.HLS_GROUP[0]}`;
+                    const defaultOptions = {
+                        host: VITALCHECK_SERVER,
+                        port: Number.parseInt(VITALCHECK_PORT),
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Content-Length': Buffer.byteLength(postData),
+                        }
+                    };
+                    var status_info = await getStatus(defaultOptions, 
+                        '/KlarionWebapp/patient-resources/PodcastBinary', postData);
+                    console.log(`STATUS_INFO::${status_info}`);
                 } catch (err) {
                     throw err;
                 }

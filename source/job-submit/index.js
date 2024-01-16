@@ -24,6 +24,10 @@ exports.handler = async (event,context) => {
          */
         console.log(event);
         const srcVideo = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
+        if (srcVideo.indexOf('/video/') === -1) {
+            return;
+        }
+        const srcParts = srcVideo.split("/");
         const srcBucket = decodeURIComponent(event.Records[0].s3.bucket.name);
         const settingsFile = `${srcVideo.split("/")[0]}/${JOB_SETTINGS}`;
         const guid = uuidv4();
@@ -32,7 +36,8 @@ exports.handler = async (event,context) => {
         const metaData = {
             Guid:guid,
             StackName:STACKNAME,
-            SolutionId:SOLUTION_ID
+            SolutionId:SOLUTION_ID,
+            MongoDbId:srcParts[3]
         };
         /**
          * download and validate settings 
