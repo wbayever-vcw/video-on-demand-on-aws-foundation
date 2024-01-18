@@ -568,7 +568,44 @@
               "StreamInfResolution": "INCLUDE"
             }
           }
-        }
+        },
+        {
+          "CustomName": "thumbnails",
+          "Name": "File Group",
+          "OutputGroupSettings": {
+              "Type": "FILE_GROUP_SETTINGS",
+              "FileGroupSettings": {
+                  "Destination": "s3://destinationbucket/guid/thumbnails/"
+              }
+          },
+          "Outputs": [{
+              "NameModifier": "_thumb",
+              "ContainerSettings": {
+                  "Container": "RAW"
+              },
+              "VideoDescription": {
+                  "ColorMetadata": "INSERT",
+                  "AfdSignaling": "NONE",
+                  "Sharpness": 100,
+                  "Height": 1080,
+                  "RespondToAfd": "NONE",
+                  "TimecodeInsertion": "DISABLED",
+                  "Width": 1920,
+                  "ScalingBehavior": "DEFAULT",
+                  "AntiAlias": "ENABLED",
+                  "CodecSettings": {
+                      "FrameCaptureSettings": {
+                          "MaxCaptures": 10000000,
+                          "Quality": 80,
+                          "FramerateDenominator": 5,
+                          "FramerateNumerator": 1
+                      },
+                      "Codec": "FRAME_CAPTURE"
+                  },
+                  "DropFrameTimecode": "ENABLED"
+              }
+          }]
+      }
       ],
       "AdAvailOffset": 0,
       "Inputs": [

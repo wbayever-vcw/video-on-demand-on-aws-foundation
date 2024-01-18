@@ -68,7 +68,7 @@ exports.handler = async (event) => {
                     */
                     await utils.sendSns(SNS_TOPIC_ARN,STACKNAME,status,results);
                     console.log(results.Outputs.HLS_GROUP)
-                    const postData = `resource_id=${event.detail.userMetadata.MongoDbId}&video_url=${results.Outputs.HLS_GROUP[0]}`;
+                    const postData = `resource_id=${event.detail.userMetadata.MongoDbId}&thumbnail_url=${results.Outputs.THUMB_NAILS}&video_url=${results.Outputs.HLS_GROUP[0]}`;
                     const defaultOptions = {
                         host: VITALCHECK_SERVER,
                         port: Number.parseInt(VITALCHECK_PORT),
