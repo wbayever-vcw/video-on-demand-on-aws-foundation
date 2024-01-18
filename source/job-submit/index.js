@@ -29,7 +29,7 @@ exports.handler = async (event,context) => {
         }
         const srcParts = srcVideo.split("/");
         const srcBucket = decodeURIComponent(event.Records[0].s3.bucket.name);
-        const settingsFile = `${srcVideo.split("/")[0]}/${JOB_SETTINGS}`;
+        const settingsFile = `${JOB_SETTINGS}`;
         const guid = uuidv4();
         const inputPath = `s3://${srcBucket}/${srcVideo}`;
         const outputPath = `s3://${DESTINATION_BUCKET}/${guid}`;

@@ -64,7 +64,7 @@ fs.readdirSync(global_s3_assets).forEach((file) => {
             fn.Properties.Code.S3Key = `${contextMap.solution_name}/${contextMap.solution_version}/${assetPath}.zip`;
             // Set the S3 bucket reference
             fn.Properties.Code.S3Bucket = {
-                'Fn::Sub': [contextMap.bucket_name, '${AWS::Region}'].join('-'),
+                'Fn::Sub': contextMap.bucket_name,
             };
             // Set the handler
             const handler = fn.Properties.Handler;

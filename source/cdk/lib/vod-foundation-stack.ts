@@ -446,7 +446,7 @@ export class VodFoundation extends cdk.Stack {
                 UUID:customResourceEndpoint.getAttString('UUID'),
                 SOLUTION_IDENTIFIER: `AwsSolution/${solutionId}/${solutionVersion}`,
                 VITALCHECK_SERVER: vitalCheckServer.valueAsString,
-                VITAL_CHECK_PORT: vitalCheckPort.valueAsString
+                VITALCHECK_PORT: vitalCheckPort.valueAsString
             },
             role: jobCompleteRole
         });
