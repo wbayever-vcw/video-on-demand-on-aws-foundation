@@ -52,84 +52,17 @@ export class VodFoundation extends cdk.Stack {
             type: "String",
             description: "Name of source s3 bucket",
         });
-        const vitalCheckServer = new cdk.CfnParameter(this, "vitalCheckServer", {
+        const destinationBucketName = new cdk.CfnParameter(this, "destinationBucketName", {
+            type: "String",
+            description: "Name of destination s3 bucket",
+        });
+        const vitalCheckCallbackUrl = new cdk.CfnParameter(this, "vitalCheckCallbackUrl", {
             type: "String",
             description: "Name or ip of VitalCheck Server",
+            default: "https://ehr.vitalcheck.com/patient-resources/PodcastBinary"
         });
-        const vitalCheckPort = new cdk.CfnParameter(this, "vitalCheckPort", {
-            type: "String",
-            description: "VitalCheck Server Port",
-        });
-        const source = s3.Bucket.fromBucketName(this, 'Source', sourceBucketName.value.toString())
-        /**
-         * Logs bucket for S3 and CloudFront
-        */
-        const logsBucket = new s3.Bucket(this, 'Logs', {
-            encryption: s3.BucketEncryption.S3_MANAGED,
-            publicReadAccess: false,
-            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-            objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,
-            enforceSSL: true,
-            versioned: true
-        });
-        /**
-         * Get Cfn Resource for the logs bucket and add CFN_NAG rule
-         */
-        const cfnLogsBucket = logsBucket.node.findChild('Resource') as s3.CfnBucket;
-        cfnLogsBucket.cfnOptions.metadata = {
-            cfn_nag: {
-                rules_to_suppress: [{
-                    id: 'W35',
-                    reason: 'Logs bucket does not require logging configuration'
-                }, {
-                    id: 'W51',
-                    reason: 'Logs bucket is private and does not require a bucket policy'
-                }]
-            }
-        };
-        //cdk_nag
-        NagSuppressions.addResourceSuppressions(
-            logsBucket,
-            [
-                {
-                    id: 'AwsSolutions-S1', //same as cfn_nag rule W35
-                    reason: 'Used to store access logs for other buckets'
-                }, {
-                    id: 'AwsSolutions-S10',
-                    reason: 'Bucket is private and is not using HTTP'
-                }
-            ]
-        );
-        /**
-         * Destination S3 bucket to host the mediaconvert outputs
-        */
-        const destination = new s3.Bucket(this, 'Destination', {
-            serverAccessLogsBucket: logsBucket,
-            serverAccessLogsPrefix: 'destination-bucket-logs/',
-            encryption: s3.BucketEncryption.S3_MANAGED,
-            publicReadAccess: false,
-            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-            cors: [
-                {
-                    maxAge: 3000,
-                    allowedOrigins: ['*'],
-                    allowedHeaders: ['*'],
-                    allowedMethods: [HttpMethods.GET]
-                },
-            ],
-            enforceSSL: true,
-            versioned: true
-        });
-        //cdk_nag
-        NagSuppressions.addResourceSuppressions(
-            destination,
-            [
-                {
-                    id: 'AwsSolutions-S10',
-                    reason: 'Bucket is private and is not using HTTP'
-                }
-            ]
-        );
+        const source = s3.Bucket.fromBucketName(this, 'Source', sourceBucketName.value.toString());
+        const destination = s3.Bucket.fromBucketName(this, 'Destination', destinationBucketName.value.toString());
         /**
          * Solutions construct to create Cloudfrotnt with an s3 bucket as the origin
          * https://docs.aws.amazon.com/solutions/latest/constructs/aws-cloudfront-s3.html
@@ -149,21 +82,9 @@ export class VodFoundation extends cdk.Stack {
                       cookies: { forward: 'none' }
                     },
                     viewerProtocolPolicy: 'allow-all'
-                },
-                logBucket: logsBucket,
-                logFilePrefix: 'cloudfront-logs/'
+                }
             }
         });
-        //cdk_nag
-        NagSuppressions.addResourceSuppressions(
-            destination.policy!,
-            [
-                {
-                    id: 'AwsSolutions-S10',
-                    reason: 'Bucket is private and is not using HTTP'
-                }
-            ]
-        );
         NagSuppressions.addResourceSuppressions(
             cloudFront.cloudFrontWebDistribution,
             [
@@ -445,8 +366,7 @@ export class VodFoundation extends cdk.Stack {
                 VERSION:solutionVersion,
                 UUID:customResourceEndpoint.getAttString('UUID'),
                 SOLUTION_IDENTIFIER: `AwsSolution/${solutionId}/${solutionVersion}`,
-                VITALCHECK_SERVER: vitalCheckServer.valueAsString,
-                VITALCHECK_PORT: vitalCheckPort.valueAsString
+                VITALCHECK_CALLBACK_URL: vitalCheckCallbackUrl.valueAsString
             },
             role: jobCompleteRole
         });

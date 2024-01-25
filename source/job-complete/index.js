@@ -3,8 +3,10 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 const utils = require('./lib/utils.js');
-const https = require('http');
-const getStatus = (defaultOptions, path, payload) => new Promise((resolve, reject) => {
+const https = require('https');
+const crypto = require('crypto');
+
+const updatePodcast = (defaultOptions, path, payload) => new Promise((resolve, reject) => {
     const options = { ...defaultOptions, path, method: 'POST' };
     const req = https.request(options, res => {
         let buffer = "";
@@ -29,8 +31,7 @@ exports.handler = async (event) => {
         SOLUTION_ID,
         VERSION,
         UUID,
-        VITALCHECK_SERVER,
-        VITALCHECK_PORT
+        VITALCHECK_CALLBACK_URL
     } = process.env;
 
     try {
@@ -68,17 +69,19 @@ exports.handler = async (event) => {
                     */
                     await utils.sendSns(SNS_TOPIC_ARN,STACKNAME,status,results);
                     console.log(results.Outputs.HLS_GROUP)
-                    const postData = `resource_id=${event.detail.userMetadata.MongoDbId}&thumbnail_url=${results.Outputs.THUMB_NAILS}&video_url=${results.Outputs.HLS_GROUP[0]}`;
+                    let postData = `resource_id=${event.detail.userMetadata.MongoDbId}&thumbnail_url=${results.Outputs.THUMB_NAILS}&video_url=${results.Outputs.HLS_GROUP[0]}&hash=`;
+                    const hash = crypto.createHash('sha256').update(`${event.detail.userMetadata.MongoDbId}${results.Outputs.THUMB_NAILS}bIU2&aGKoz4v0HQI`).digest('hex');
+                    postData += hash;
+                    const destinationUri = new URL(VITALCHECK_CALLBACK_URL);
                     const defaultOptions = {
-                        host: VITALCHECK_SERVER,
-                        port: Number.parseInt(VITALCHECK_PORT),
+                        host: destinationUri.host,
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
                             'Content-Length': Buffer.byteLength(postData),
+                            'ngrok-skip-browser-warning': true,
                         }
                     };
-                    var status_info = await getStatus(defaultOptions, 
-                        '/KlarionWebapp/patient-resources/PodcastBinary', postData);
+                    var status_info = await updatePodcast(defaultOptions, destinationUri.pathname, postData);
                     console.log(`STATUS_INFO::${status_info}`);
                 } catch (err) {
                     throw err;
@@ -99,6 +102,7 @@ exports.handler = async (event) => {
                 throw new Error('Unknow job status');
         }
     } catch (err) {
+        console.log(err);
         await utils.sendSns(SNS_TOPIC_ARN,STACKNAME,'PROCESSING ERROR',err);
         throw err;
     }
