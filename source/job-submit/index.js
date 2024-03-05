@@ -24,9 +24,6 @@ exports.handler = async (event,context) => {
          */
         console.log(event);
         const videoKey = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
-        if (videoKey.indexOf('/video/') === -1) {
-            return;
-        }
         const keyPath = videoKey.substring(0, videoKey.lastIndexOf('/'));
         const srcParts = videoKey.split("/");
         const srcBucket = decodeURIComponent(event.Records[0].s3.bucket.name);
@@ -37,7 +34,7 @@ exports.handler = async (event,context) => {
             Guid:keyPath,
             StackName:STACKNAME,
             SolutionId:SOLUTION_ID,
-            MongoDbId:srcParts[3]
+            MongoDbId:srcParts[1]
         };
         /**
          * download and validate settings 
